@@ -2,10 +2,13 @@
 
 Dashboard web estático em HTML, CSS e JavaScript puro.
 
-## Atualização v3
-- Adicionada logomarca Alares no cabeçalho.
-- Tipo de desconexão exibido em gráfico de pizza/rosca.
-- Mantido tema escuro e layout executivo.
+## Atualização v4
+- Adicionado KPI de Volume Sobressalente Total.
+- Adicionado gráfico de tecnologia: WIFI 5 x WIFI 6 x Outros.
+- Adicionado ranking de UF por Volume Sobressalente.
+- Adicionado ranking de carteira por Volume Sobressalente.
+- Adicionada evolução mensal do Volume Sobressalente.
+- Mantida logomarca Alares no cabeçalho.
 
 ## Estrutura
 - `index.html`: página principal

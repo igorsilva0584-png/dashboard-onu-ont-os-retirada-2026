@@ -13,7 +13,7 @@
       <div>
         <p class="eyebrow">Auditoria B2C · CPF · Critério: mais de 1 ONT/ONU</p>
         <h1>Diagnóstico ONT/ONU x OS de Retirada 2026</h1>
-        <p class="subtitle">Resumo executivo por UF, carteira, tipo de desconexão e evolução mensal.</p>
+        <p class="subtitle">Resumo executivo por UF, carteira, tecnologia, volume sobressalente e evolução mensal.</p>
       </div>
     </div>
     <div class="stamp"><span>Base</span><strong>JAN–MAI/2026</strong></div>
@@ -28,16 +28,16 @@
     </section>
 
     <section class="kpis">
-      <article class="kpi card"><span>Total geral</span><strong id="kpiTotal">-</strong><small>Contratos distintos</small></article>
+      <article class="kpi card"><span>Total contratos</span><strong id="kpiTotal">-</strong><small>Contratos distintos</small></article>
+      <article class="kpi card danger"><span>Volume sobressalente</span><strong id="kpiSurplus">-</strong><small>Equipamentos excedentes</small></article>
       <article class="kpi card"><span>UF crítica</span><strong id="kpiUF">-</strong><small id="kpiUFSub">-</small></article>
       <article class="kpi card"><span>Carteira crítica</span><strong id="kpiCarteira">-</strong><small id="kpiCarteiraSub">-</small></article>
-      <article class="kpi card"><span>Maior mês</span><strong id="kpiMes">-</strong><small id="kpiMesSub">-</small></article>
       <article class="kpi card accent"><span>SP/AZZA</span><strong id="kpiSpAzza">-</strong><small id="kpiSpAzzaSub">do total filtrado</small></article>
     </section>
 
     <section class="grid two">
       <article class="card">
-        <div class="card-title"><h2>1. Evolução mês a mês</h2><span>Crescimento do volume</span></div>
+        <div class="card-title"><h2>1. Evolução mensal de contratos</h2><span>Contagem distinta de contratos</span></div>
         <div id="monthlyChart" class="chart"></div>
       </article>
       <article class="card">
@@ -50,16 +50,35 @@
     </section>
 
     <section class="grid two">
-      <article class="card"><div class="card-title"><h2>3. Ranking por UF</h2><span>Regiões mais críticas</span></div><div id="ufChart" class="chart tall"></div></article>
-      <article class="card"><div class="card-title"><h2>4. Ranking por carteira</h2><span>Carteiras mais críticas</span></div><div id="carteiraChart" class="chart tall"></div></article>
+      <article class="card">
+        <div class="card-title"><h2>3. Tecnologia dos equipamentos</h2><span>WIFI 5 x WIFI 6 x Outros</span></div>
+        <div id="wifiChart" class="chart pie-wrap">
+          <div class="pie-area"><div id="wifiPie" class="pie-chart wifi" aria-label="Gráfico de pizza por tecnologia"></div></div>
+          <div id="wifiLegend" class="pie-legend"></div>
+        </div>
+      </article>
+      <article class="card">
+        <div class="card-title"><h2>4. Evolução mensal do sobressalente</h2><span>Soma de Volume Sobressalente</span></div>
+        <div id="surplusMonthChart" class="chart"></div>
+      </article>
+    </section>
+
+    <section class="grid two">
+      <article class="card"><div class="card-title"><h2>5. Ranking UF por sobressalente</h2><span>Equipamentos excedentes</span></div><div id="surplusUfChart" class="chart tall"></div></article>
+      <article class="card"><div class="card-title"><h2>6. Ranking carteira por sobressalente</h2><span>Equipamentos excedentes</span></div><div id="surplusCarteiraChart" class="chart tall"></div></article>
+    </section>
+
+    <section class="grid two">
+      <article class="card"><div class="card-title"><h2>7. Ranking por UF</h2><span>Contratos críticos</span></div><div id="ufChart" class="chart tall"></div></article>
+      <article class="card"><div class="card-title"><h2>8. Ranking por carteira</h2><span>Contratos críticos</span></div><div id="carteiraChart" class="chart tall"></div></article>
     </section>
 
     <section class="card">
-      <div class="card-title"><h2>5. Top combinações UF + carteira + desconexão</h2><span>Prioridade prática de atuação</span></div>
+      <div class="card-title"><h2>9. Top combinações UF + carteira + desconexão</h2><span>Prioridade prática de atuação</span></div>
       <div class="table-wrap"><table id="topTable"><thead><tr><th>#</th><th>Tipo desconexão</th><th>UF</th><th>Carteira</th><th>JAN</th><th>FEV</th><th>MAR</th><th>ABR</th><th>MAI</th><th>Total</th><th>%</th></tr></thead><tbody></tbody></table></div>
     </section>
 
-    <section class="card insights"><div class="card-title"><h2>6. Leitura executiva automática</h2><span>Resumo dos principais alertas</span></div><ul id="insightList"></ul></section>
+    <section class="card insights"><div class="card-title"><h2>10. Leitura executiva automática</h2><span>Resumo dos principais alertas</span></div><ul id="insightList"></ul></section>
   </main>
   <script src="app.js"></script>
 </body>
