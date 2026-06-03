@@ -13,23 +13,14 @@
       <h1>Diagnóstico ONT/ONU x OS de Retirada 2026</h1>
       <p class="subtitle">Resumo executivo por UF, carteira, tipo de desconexão e evolução mensal.</p>
     </div>
-    <div class="stamp">
-      <span>Base</span>
-      <strong>JAN–MAI/2026</strong>
-    </div>
+    <div class="stamp"><span>Base</span><strong>JAN–MAI/2026</strong></div>
   </header>
 
   <main class="container">
     <section class="filters card">
-      <label>Tipo desconexão
-        <select id="fTipo"><option value="">Todos</option></select>
-      </label>
-      <label>UF
-        <select id="fEstado"><option value="">Todos</option></select>
-      </label>
-      <label>Carteira
-        <select id="fCarteira"><option value="">Todas</option></select>
-      </label>
+      <label>Tipo desconexão<select id="fTipo"><option value="">Todos</option></select></label>
+      <label>UF<select id="fEstado"><option value="">Todos</option></select></label>
+      <label>Carteira<select id="fCarteira"><option value="">Todas</option></select></label>
       <button id="resetBtn">Limpar filtros</button>
     </section>
 
@@ -48,37 +39,25 @@
       </article>
       <article class="card">
         <div class="card-title"><h2>2. Tipo de desconexão</h2><span>Involuntária x Voluntária</span></div>
-        <div id="tipoChart" class="chart"></div>
+        <div id="tipoChart" class="chart pie-wrap">
+          <div class="pie-area"><div id="tipoPie" class="pie-chart" aria-label="Gráfico de pizza por tipo de desconexão"></div></div>
+          <div id="tipoLegend" class="pie-legend"></div>
+        </div>
       </article>
     </section>
 
     <section class="grid two">
-      <article class="card">
-        <div class="card-title"><h2>3. Ranking por UF</h2><span>Regiões mais críticas</span></div>
-        <div id="ufChart" class="chart tall"></div>
-      </article>
-      <article class="card">
-        <div class="card-title"><h2>4. Ranking por carteira</h2><span>Carteiras mais críticas</span></div>
-        <div id="carteiraChart" class="chart tall"></div>
-      </article>
+      <article class="card"><div class="card-title"><h2>3. Ranking por UF</h2><span>Regiões mais críticas</span></div><div id="ufChart" class="chart tall"></div></article>
+      <article class="card"><div class="card-title"><h2>4. Ranking por carteira</h2><span>Carteiras mais críticas</span></div><div id="carteiraChart" class="chart tall"></div></article>
     </section>
 
     <section class="card">
       <div class="card-title"><h2>5. Top combinações UF + carteira + desconexão</h2><span>Prioridade prática de atuação</span></div>
-      <div class="table-wrap">
-        <table id="topTable">
-          <thead><tr><th>#</th><th>Tipo desconexão</th><th>UF</th><th>Carteira</th><th>JAN</th><th>FEV</th><th>MAR</th><th>ABR</th><th>MAI</th><th>Total</th><th>%</th></tr></thead>
-          <tbody></tbody>
-        </table>
-      </div>
+      <div class="table-wrap"><table id="topTable"><thead><tr><th>#</th><th>Tipo desconexão</th><th>UF</th><th>Carteira</th><th>JAN</th><th>FEV</th><th>MAR</th><th>ABR</th><th>MAI</th><th>Total</th><th>%</th></tr></thead><tbody></tbody></table></div>
     </section>
 
-    <section class="card insights">
-      <div class="card-title"><h2>6. Leitura executiva automática</h2><span>Resumo dos principais alertas</span></div>
-      <ul id="insightList"></ul>
-    </section>
+    <section class="card insights"><div class="card-title"><h2>6. Leitura executiva automática</h2><span>Resumo dos principais alertas</span></div><ul id="insightList"></ul></section>
   </main>
-
   <script src="app.js"></script>
 </body>
 </html>

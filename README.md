@@ -2,10 +2,11 @@
 
 Dashboard web estático em HTML, CSS e JavaScript puro.
 
+## Atualização v2
+- Tipo de desconexão exibido em gráfico de pizza/rosca.
+- Removido o excesso visual de espaço em branco da seção Involuntária x Voluntária.
+
 ## Arquivos
 - `index.html`: página principal
 - `style.css`: layout e tema visual
 - `app.js`: dados, filtros, KPIs e gráficos
-
-## Próximo passo sugerido
-Trocar o bloco `DATA` no `app.js` por leitura de um `base.csv` exportado via Power Query/Power Automate.
