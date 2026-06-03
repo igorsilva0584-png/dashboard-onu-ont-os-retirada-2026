@@ -2,11 +2,13 @@
 
 Dashboard web estático em HTML, CSS e JavaScript puro.
 
-## Atualização v2
+## Atualização v3
+- Adicionada logomarca Alares no cabeçalho.
 - Tipo de desconexão exibido em gráfico de pizza/rosca.
-- Removido o excesso visual de espaço em branco da seção Involuntária x Voluntária.
+- Mantido tema escuro e layout executivo.
 
-## Arquivos
+## Estrutura
 - `index.html`: página principal
 - `style.css`: layout e tema visual
 - `app.js`: dados, filtros, KPIs e gráficos
+- `assets/logo-alares.png`: logomarca usada no cabeçalho
