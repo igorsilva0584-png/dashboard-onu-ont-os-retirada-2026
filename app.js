@@ -21,8 +21,18 @@ const fmt = new Intl.NumberFormat('pt-BR');
 const pct = (v, t) => t ? (v / t * 100).toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 }) + '%' : '0,0%';
 
 const MESES = {
-  1: 'JAN/2026', 2: 'FEV/2026', 3: 'MAR/2026', 4: 'ABR/2026', 5: 'MAI/2026', 6: 'JUN/2026',
-  7: 'JUL/2026', 8: 'AGO/2026', 9: 'SET/2026', 10: 'OUT/2026', 11: 'NOV/2026', 12: 'DEZ/2026'
+  1: 'JAN/2026',
+  2: 'FEV/2026',
+  3: 'MAR/2026',
+  4: 'ABR/2026',
+  5: 'MAI/2026',
+  6: 'JUN/2026',
+  7: 'JUL/2026',
+  8: 'AGO/2026',
+  9: 'SET/2026',
+  10: 'OUT/2026',
+  11: 'NOV/2026',
+  12: 'DEZ/2026'
 };
 
 function cacheBuster(url) {
@@ -30,9 +40,13 @@ function cacheBuster(url) {
   return `${url}${sep}v=${Date.now()}`;
 }
 
+function limparTexto(valor) {
+  return String(valor ?? '').replace(/^\uFEFF/, '').trim();
+}
+
 function parseNumber(value) {
   if (value === null || value === undefined) return 0;
-  const text = String(value).trim();
+  const text = limparTexto(value);
   if (text === '') return 0;
   const normalized = text.replace(/\./g, '').replace(',', '.');
   const number = Number(normalized);
@@ -40,10 +54,11 @@ function parseNumber(value) {
 }
 
 function normalizarMes(valorMes, ordemMes) {
-  const texto = String(valorMes ?? '').trim().toUpperCase();
+  const texto = limparTexto(valorMes).toUpperCase();
   const ordem = parseNumber(ordemMes);
 
-  if (texto.includes('/2026') && /^[A-Z]{3}\/2026$/.test(texto)) return texto;
+  if (/^[A-Z]{3}\/\d{4}$/.test(texto)) return texto;
+  if (/^[A-Z]{3}\/\d{2}$/.test(texto)) return `${texto.slice(0, 3)}/20${texto.slice(-2)}`;
   if (ordem >= 1 && ordem <= 12) return MESES[ordem] || texto;
 
   const matchData = texto.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
@@ -71,7 +86,11 @@ function obterValorContrato(row) {
 }
 
 function parseCSV(text, delimiter = ';') {
-  const cleanText = text.replace(/^\uFEFF/, '').replace(/\r\n/g, '\n').replace(/\r/g, '\n').trim();
+  // Remove BOM real do início do arquivo. Importante para CSV UTF-8 gerado por ADODB.Stream.
+  let cleanText = String(text ?? '');
+  if (cleanText.charCodeAt(0) === 0xFEFF) cleanText = cleanText.slice(1);
+  cleanText = cleanText.replace(/^\uFEFF/, '').replace(/\r\n/g, '\n').replace(/\r/g, '\n').trim();
+
   if (!cleanText) return [];
 
   const rows = [];
@@ -106,10 +125,11 @@ function parseCSV(text, delimiter = ';') {
   row.push(field);
   rows.push(row);
 
-  const headers = rows.shift().map(h => h.trim());
+  const headers = rows.shift().map(h => limparTexto(h));
+
   return rows
-    .filter(r => r.some(c => String(c).trim() !== ''))
-    .map(r => Object.fromEntries(headers.map((h, idx) => [h, (r[idx] ?? '').trim()])));
+    .filter(r => r.some(c => limparTexto(c) !== ''))
+    .map(r => Object.fromEntries(headers.map((h, idx) => [h, limparTexto(r[idx])])));
 }
 
 async function carregarCSV(url) {
@@ -121,20 +141,28 @@ async function carregarCSV(url) {
 
 function unique(arr) { return [...new Set(arr)].sort(); }
 function sum(arr) { return arr.reduce((a, b) => a + b, 0); }
+
 function groupBy(rows, keyFn, valueFn = r => r.total) {
   const map = new Map();
   rows.forEach(row => {
     const key = keyFn(row);
     map.set(key, (map.get(key) || 0) + valueFn(row));
   });
-  return [...map.entries()].map(([name, total]) => ({ name, total })).sort((a, b) => b.total - a.total);
+  return [...map.entries()]
+    .map(([name, total]) => ({ name, total }))
+    .sort((a, b) => b.total - a.total);
 }
 
 function filtered() {
   const tipo = $('fTipo').value;
   const estado = $('fEstado').value;
   const carteira = $('fCarteira').value;
-  return DATA.filter(row => (!tipo || row.tipo_desconexao === tipo) && (!estado || row.estado === estado) && (!carteira || row.descricao === carteira));
+
+  return DATA.filter(row =>
+    (!tipo || row.tipo_desconexao === tipo) &&
+    (!estado || row.estado === estado) &&
+    (!carteira || row.descricao === carteira)
+  );
 }
 
 function fillFilters() {
@@ -142,12 +170,14 @@ function fillFilters() {
     const select = $(id);
     const currentValue = select.value;
     select.querySelectorAll('option:not([value=""])').forEach(option => option.remove());
+
     unique(DATA.map(row => row[key]).filter(Boolean)).forEach(value => {
       const option = document.createElement('option');
       option.value = value;
       option.textContent = value;
       select.appendChild(option);
     });
+
     select.value = currentValue;
   });
 }
@@ -165,6 +195,7 @@ function barChart(element, items, className = '') {
 function pieChart(pieElement, legendElement, items, colors = ['var(--red)', 'var(--cyan)', 'var(--green)', 'var(--yellow)']) {
   const total = sum(items.map(item => item.total));
   let start = 0;
+
   const gradient = items.map((item, index) => {
     const degrees = total ? (item.total / total) * 360 : 0;
     const color = colors[index % colors.length];
@@ -172,8 +203,10 @@ function pieChart(pieElement, legendElement, items, colors = ['var(--red)', 'var
     start += degrees;
     return part;
   }).join(', ');
+
   pieElement.style.background = `conic-gradient(${gradient})`;
   pieElement.innerHTML = `<div class="pie-center"><strong>${fmt.format(total)}</strong><span>Total</span></div>`;
+
   legendElement.innerHTML = items.map((item, index) => `
     <div class="legend-item">
       <span class="legend-dot" style="background:${colors[index % colors.length]}"></span>
@@ -188,7 +221,10 @@ function render() {
   const byUF = groupBy(rows, row => row.estado);
   const byCarteira = groupBy(rows, row => row.descricao);
   const byTipo = groupBy(rows, row => row.tipo_desconexao);
-  const byMonth = MONTHS.map(month => ({ name: month.name, total: sum(rows.filter(row => row.mes === month.name).map(row => row.total)) }));
+  const byMonth = MONTHS.map(month => ({
+    name: month.name,
+    total: sum(rows.filter(row => row.mes === month.name).map(row => row.total))
+  }));
   const spAzza = sum(rows.filter(row => row.estado === 'SP' && row.descricao === 'AZZA').map(row => row.total));
 
   $('kpiTotal').textContent = fmt.format(total);
@@ -212,9 +248,13 @@ function render() {
   const ranked = [...rows].sort((a, b) => b.total - a.total).slice(0, 12);
   $('topTable').querySelector('tbody').innerHTML = ranked.map((row, index) => `
     <tr>
-      <td>${index + 1}</td><td>${row.tipo_desconexao}</td><td>${row.estado}</td><td><strong>${row.descricao}</strong></td>
+      <td>${index + 1}</td>
+      <td>${row.tipo_desconexao}</td>
+      <td>${row.estado}</td>
+      <td><strong>${row.descricao}</strong></td>
       ${MONTHS.map(month => `<td class="num">${fmt.format(row.monthValues[month.name] || 0)}</td>`).join('')}
-      <td class="num"><strong>${fmt.format(row.total)}</strong></td><td class="num">${pct(row.total, total)}</td>
+      <td class="num"><strong>${fmt.format(row.total)}</strong></td>
+      <td class="num">${pct(row.total, total)}</td>
     </tr>`).join('');
 
   const wifiTotal = sum(WIFI_DATA.map(item => item.total));
@@ -235,21 +275,29 @@ function render() {
 
 function prepararContratosMacro(rawRows) {
   const grouped = new Map();
+
   rawRows.forEach(row => {
     const month = normalizarMes(row.mes ?? row['Mês/Ano OS mais recente'] ?? row['Mês/Ano'], row.ordem_mes);
     const contracts = obterValorContrato(row);
-    const order = parseNumber(row.ordem_mes) || Object.entries(MESES).find(([, name]) => name === month)?.[0] || 99;
+    const ordemEncontrada = Object.entries(MESES).find(([, name]) => name === month)?.[0] || 99;
+    const order = parseNumber(row.ordem_mes) || parseNumber(ordemEncontrada) || 99;
     const key = [row.tipo_desconexao, row.estado, row.descricao].join('|');
 
     if (!grouped.has(key)) {
-      grouped.set(key, { tipo_desconexao: row.tipo_desconexao, estado: row.estado, descricao: row.descricao, monthValues: {}, total: 0 });
+      grouped.set(key, {
+        tipo_desconexao: row.tipo_desconexao,
+        estado: row.estado,
+        descricao: row.descricao,
+        monthValues: {},
+        total: 0
+      });
     }
 
     const item = grouped.get(key);
     item.monthValues[month] = (item.monthValues[month] || 0) + contracts;
     item.total += contracts;
 
-    if (!MONTHS.some(m => m.name === month)) MONTHS.push({ name: month, ordem: parseNumber(order) });
+    if (!MONTHS.some(m => m.name === month)) MONTHS.push({ name: month, ordem: order });
   });
 
   MONTHS.sort((a, b) => a.ordem - b.ordem);
@@ -259,8 +307,12 @@ function prepararContratosMacro(rawRows) {
 async function carregarDashboard() {
   try {
     const [contratosRaw, wifiRaw, kpiRaw, surplusUFRaw, surplusCarteiraRaw, surplusMesRaw] = await Promise.all([
-      carregarCSV(CSV_FILES.contratos), carregarCSV(CSV_FILES.wifi), carregarCSV(CSV_FILES.kpi),
-      carregarCSV(CSV_FILES.surplusUF), carregarCSV(CSV_FILES.surplusCarteira), carregarCSV(CSV_FILES.surplusMes)
+      carregarCSV(CSV_FILES.contratos),
+      carregarCSV(CSV_FILES.wifi),
+      carregarCSV(CSV_FILES.kpi),
+      carregarCSV(CSV_FILES.surplusUF),
+      carregarCSV(CSV_FILES.surplusCarteira),
+      carregarCSV(CSV_FILES.surplusMes)
     ]);
 
     MONTHS = [];
@@ -271,8 +323,9 @@ async function carregarDashboard() {
     SURPLUS_CARTEIRA = surplusCarteiraRaw.map(row => ({ name: row.descricao, total: parseNumber(row.total) })).sort((a, b) => b.total - a.total);
     SURPLUS_MONTH = surplusMesRaw.map(row => {
       const mes = normalizarMes(row.mes ?? row['Mês/Ano OS mais recente'] ?? row['Mês/Ano'], row.ordem_mes);
-      const ordem = parseNumber(row.ordem_mes) || Object.entries(MESES).find(([, name]) => name === mes)?.[0] || 99;
-      return { name: mes, ordem: parseNumber(ordem), total: parseNumber(row.total) };
+      const ordemEncontrada = Object.entries(MESES).find(([, name]) => name === mes)?.[0] || 99;
+      const ordem = parseNumber(row.ordem_mes) || parseNumber(ordemEncontrada) || 99;
+      return { name: mes, ordem, total: parseNumber(row.total) };
     }).sort((a, b) => a.ordem - b.ordem);
 
     fillFilters();
@@ -284,7 +337,17 @@ async function carregarDashboard() {
   }
 }
 
-['fTipo', 'fEstado', 'fCarteira'].forEach(id => { const element = $(id); if (element) element.addEventListener('change', render); });
+['fTipo', 'fEstado', 'fCarteira'].forEach(id => {
+  const element = $(id);
+  if (element) element.addEventListener('change', render);
+});
+
 const resetButton = $('resetBtn');
-if (resetButton) resetButton.addEventListener('click', () => { ['fTipo', 'fEstado', 'fCarteira'].forEach(id => { $(id).value = ''; }); render(); });
+if (resetButton) {
+  resetButton.addEventListener('click', () => {
+    ['fTipo', 'fEstado', 'fCarteira'].forEach(id => { $(id).value = ''; });
+    render();
+  });
+}
+
 carregarDashboard();
