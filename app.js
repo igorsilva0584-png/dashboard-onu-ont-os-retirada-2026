@@ -221,10 +221,10 @@ function render() {
   const byUF = groupBy(rows, row => row.estado);
   const byCarteira = groupBy(rows, row => row.descricao);
   const byTipo = groupBy(rows, row => row.tipo_desconexao);
-  const byMonth = MONTHS.map(month => ({
-    name: month.name,
-    total: sum(rows.filter(row => row.mes === month.name).map(row => row.total))
-  }));
+ const byMonth = MONTHS.map(month => ({
+  name: month.name,
+  total: sum(rows.map(row => row.monthValues?.[month.name] || 0))
+}));
   const spAzza = sum(rows.filter(row => row.estado === 'SP' && row.descricao === 'AZZA').map(row => row.total));
 
   $('kpiTotal').textContent = fmt.format(total);
