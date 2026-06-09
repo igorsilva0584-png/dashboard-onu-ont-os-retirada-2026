@@ -1,0 +1,11 @@
+tipo_desconexao;mes;ordem_mes;volume_aberto_atual;volume_sobressalente;volume_aberto_ajustado;volume_coletado_ok;pct_coleta_atual;pct_coleta_ajustado;pct_reducao_base
+voluntaria;JAN/2026;1;10554;64;10490;9240;87,5%;88,1%;0,6%
+voluntaria;FEV/2026;2;9724;80;9644;8073;83,0%;83,7%;0,8%
+voluntaria;MAR/2026;3;10115;101;10014;10787;106,6%;107,7%;1,0%
+voluntaria;ABR/2026;4;10019;109;9910;9351;93,3%;94,4%;1,1%
+voluntaria;MAI/2026;5;10629;184;10445;9383;88,3%;89,8%;1,7%
+involuntaria;JAN/2026;1;12243;145;12098;3834;31,3%;31,7%;1,2%
+involuntaria;FEV/2026;2;11513;151;11362;3627;31,5%;31,9%;1,3%
+involuntaria;MAR/2026;3;12723;187;12536;4631;36,4%;36,9%;1,5%
+involuntaria;ABR/2026;4;12202;194;12008;4514;37,0%;37,6%;1,6%
+involuntaria;MAI/2026;5;12124;255;11869;4244;35,0%;35,8%;2,1%
