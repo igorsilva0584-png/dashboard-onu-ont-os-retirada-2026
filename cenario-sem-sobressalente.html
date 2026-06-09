@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Cenário Sem Sobressalente — Dashboard ONT/ONU</title>
+  <link rel="stylesheet" href="style.css" />
+  <style>
+    .page-actions{display:flex;gap:12px;flex-wrap:wrap;margin-top:14px}
+    .action-btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:10px 14px;border-radius:12px;border:1px solid var(--line);background:#12395a;color:var(--text);text-decoration:none;font-weight:700;font-size:13px}
+    .action-btn.secondary{background:#071827;color:#dbeafe}
+    .kpis.scenario{grid-template-columns:repeat(7,1fr)}
+    .kpi strong.small{font-size:24px}
+    .delta-positive{color:var(--green)}
+    .delta-alert{color:var(--yellow)}
+    .comparison-row{display:grid;grid-template-columns:120px 1fr 80px;gap:12px;align-items:center;margin:12px 0}
+    .comparison-bars{display:grid;gap:7px}
+    .compare-track{height:18px;background:#071827;border:1px solid var(--line);border-radius:999px;overflow:hidden}
+    .compare-bar{height:100%;border-radius:999px;background:linear-gradient(90deg,var(--blue),var(--cyan))}
+    .compare-bar.adjusted{background:linear-gradient(90deg,var(--green),var(--cyan))}
+    .legend-inline{display:flex;gap:14px;flex-wrap:wrap;color:var(--muted);font-size:12px;padding:0 18px 18px}
+    .legend-swatch{display:inline-block;width:10px;height:10px;border-radius:999px;margin-right:6px;vertical-align:middle}
+    .swatch-current{background:var(--blue)}.swatch-adjusted{background:var(--green)}.swatch-surplus{background:var(--red)}
+    .table-wrap.scenario-table table td.num,.table-wrap.scenario-table table th.num{text-align:right}
+    .filter-note{padding:0 18px 18px;color:var(--muted);font-size:12px}
+    @media(max-width:1280px){.kpis.scenario{grid-template-columns:repeat(3,1fr)}}
+    @media(max-width:720px){.kpis.scenario{grid-template-columns:1fr}.comparison-row{grid-template-columns:82px 1fr 64px}.page-actions{width:100%}.action-btn{width:100%}}
+  </style>
+</head>
+<body>
+  <header class="hero">
+    <div class="brand-area">
+      <img src="assets/logo-alares.png" alt="Logo Alares" class="logo-alares" />
+      <div>
+        <p class="eyebrow">Cenário ajustado · Retirada do volume sobressalente</p>
+        <h1>Cenário Sem Sobressalente</h1>
+        <p class="subtitle">Simulação do resultado atual removendo da base o volume sobressalente identificado por mês e tipo de desconexão.</p>
+        <div class="page-actions">
+          <a class="action-btn secondary" href="index.html">Voltar ao resumo executivo</a>
+        </div>
+      </div>
+    </div>
+    <div class="stamp"><span>Base</span><strong>JAN–MAI/2026</strong></div>
+  </header>
+
+  <main class="container">
+    <section class="filters card">
+      <label>Tipo desconexão
+        <select id="fTipo"><option value="">Todos</option></select>
+      </label>
+      <button id="resetBtn">Limpar filtros</button>
+      <span class="filter-note">Regra: Volume Ajustado = Volume Aberto Atual - Volume Sobressalente.</span>
+    </section>
+
+    <section class="kpis scenario">
+      <article class="kpi card"><span>Aberto atual</span><strong id="kpiAberto" class="small">-</strong><small>Volume em aberto original</small></article>
+      <article class="kpi card danger"><span>Sobressalente</span><strong id="kpiSobra" class="small">-</strong><small>Excesso identificado</small></article>
+      <article class="kpi card"><span>Aberto ajustado</span><strong id="kpiAjustado" class="small">-</strong><small>Aberto atual - sobressalente</small></article>
+      <article class="kpi card"><span>Coletado OK</span><strong id="kpiColetado" class="small">-</strong><small>Volume coletado atual</small></article>
+      <article class="kpi card"><span>% atual</span><strong id="kpiPctAtual" class="small">-</strong><small>Coletado / aberto atual</small></article>
+      <article class="kpi card accent"><span>% ajustado</span><strong id="kpiPctAjustado" class="small">-</strong><small>Coletado / aberto ajustado</small></article>
+      <article class="kpi card"><span>Ganho</span><strong id="kpiGanho" class="small delta-positive">-</strong><small>p.p. no indicador</small></article>
+    </section>
+
+    <section class="grid two">
+      <article class="card">
+        <div class="card-title"><h2>1. Aberto atual x ajustado por mês</h2><span>Comparativo do denominador</span></div>
+        <div id="comparativoVolume" class="chart"></div>
+        <div class="legend-inline"><span><i class="legend-swatch swatch-current"></i>Aberto atual</span><span><i class="legend-swatch swatch-adjusted"></i>Aberto ajustado</span></div>
+      </article>
+      <article class="card">
+        <div class="card-title"><h2>2. Volume sobressalente por mês</h2><span>Equipamentos retirados da base</span></div>
+        <div id="sobressalenteMes" class="chart"></div>
+      </article>
+    </section>
+
+    <section class="grid two">
+      <article class="card">
+        <div class="card-title"><h2>3. % coleta atual x ajustado</h2><span>Impacto percentual após retirar sobressalente</span></div>
+        <div id="comparativoPercentual" class="chart"></div>
+        <div class="legend-inline"><span><i class="legend-swatch swatch-current"></i>% atual</span><span><i class="legend-swatch swatch-adjusted"></i>% ajustado</span></div>
+      </article>
+      <article class="card">
+        <div class="card-title"><h2>4. Comparativo por tipo de desconexão</h2><span>Visão consolidada voluntária x involuntária</span></div>
+        <div id="tipoChart" class="chart"></div>
+      </article>
+    </section>
+
+    <section class="card">
+      <div class="card-title"><h2>5. Tabela analítica do cenário ajustado</h2><span>Base do cálculo por mês e tipo</span></div>
+      <div class="table-wrap scenario-table">
+        <table id="tabelaCenario">
+          <thead>
+            <tr>
+              <th>Tipo</th><th>Mês</th><th class="num">Aberto atual</th><th class="num">Sobressalente</th><th class="num">Aberto ajustado</th><th class="num">Coletado OK</th><th class="num">% atual</th><th class="num">% ajustado</th><th class="num">Ganho p.p.</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="card insights">
+      <div class="card-title"><h2>6. Leitura executiva automática</h2><span>Impacto da retirada do sobressalente</span></div>
+      <ul id="insightList"></ul>
+    </section>
+  </main>
+
+  <script src="cenario-sem-sobressalente.js"></script>
+</body>
+</html>
