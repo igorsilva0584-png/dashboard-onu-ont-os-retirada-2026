@@ -59,25 +59,9 @@ function groupByMonth(rows){
   });
   return [...map.values()].map(i => ({...i, pct_atual:i.volume_coletado_ok/i.volume_aberto_atual, pct_ajustado:i.volume_coletado_ok/i.volume_aberto_ajustado})).sort((a,b)=>a.ordem-b.ordem);
 }
-function groupByTipo(rows){
-  const map = new Map();
-  rows.forEach(r => {
-    if(!map.has(r.tipo_desconexao)) map.set(r.tipo_desconexao, {name:r.tipo_desconexao, volume_aberto_atual:0, volume_sobressalente:0, volume_aberto_ajustado:0, volume_coletado_ok:0});
-    const item = map.get(r.tipo_desconexao);
-    item.volume_aberto_atual += r.volume_aberto_atual;
-    item.volume_sobressalente += r.volume_sobressalente;
-    item.volume_aberto_ajustado += r.volume_aberto_ajustado;
-    item.volume_coletado_ok += r.volume_coletado_ok;
-  });
-  return [...map.values()].map(i => ({...i, pct_atual:i.volume_coletado_ok/i.volume_aberto_atual, pct_ajustado:i.volume_coletado_ok/i.volume_aberto_ajustado})).sort((a,b)=>b.volume_sobressalente-a.volume_sobressalente);
-}
 function barChart(el, items, valueKey, cls=''){
   const max = Math.max(...items.map(i=>i[valueKey]), 1);
   el.innerHTML = items.map(i => `<div class="bar-row"><div class="bar-label" title="${i.name}">${i.name}</div><div class="bar-track"><div class="bar ${cls}" style="width:${(i[valueKey]/max*100).toFixed(1)}%"></div></div><div class="bar-value">${fmt.format(i[valueKey])}</div></div>`).join('');
-}
-function compareBars(el, items, keyA, keyB, formatter=fmt.format){
-  const max = Math.max(...items.flatMap(i=>[i[keyA], i[keyB]]), 1);
-  el.innerHTML = items.map(i => `<div class="comparison-row"><div class="bar-label">${i.name}</div><div class="comparison-bars"><div class="compare-track"><div class="compare-bar" style="width:${(i[keyA]/max*100).toFixed(1)}%"></div></div><div class="compare-track"><div class="compare-bar adjusted" style="width:${(i[keyB]/max*100).toFixed(1)}%"></div></div></div><div class="bar-value">${formatter(i[keyB])}</div></div>`).join('');
 }
 function fillFilters(){
   const select = $('fTipo');
@@ -88,7 +72,6 @@ function fillFilters(){
 function render(){
   const rows = filtered();
   const month = groupByMonth(rows);
-  const tipos = groupByTipo(rows);
   const aberto = sum(rows.map(r=>r.volume_aberto_atual));
   const sobra = sum(rows.map(r=>r.volume_sobressalente));
   const ajustado = sum(rows.map(r=>r.volume_aberto_ajustado));
@@ -96,6 +79,7 @@ function render(){
   const pctAtual = coletado / aberto;
   const pctAjustado = coletado / ajustado;
   const ganho = pctAjustado - pctAtual;
+
   $('kpiAberto').textContent = fmt.format(aberto);
   $('kpiSobra').textContent = fmt.format(sobra);
   $('kpiAjustado').textContent = fmt.format(ajustado);
@@ -103,14 +87,17 @@ function render(){
   $('kpiPctAtual').textContent = pct(pctAtual);
   $('kpiPctAjustado').textContent = pct(pctAjustado);
   $('kpiGanho').textContent = pp(ganho);
-  compareBars($('comparativoVolume'), month, 'volume_aberto_atual', 'volume_aberto_ajustado');
+
+  $('tabelaResumoVolume').querySelector('tbody').innerHTML = month.map(m => `<tr><td>${m.name}</td><td class="num">${fmt.format(m.volume_aberto_atual)}</td><td class="num">${fmt.format(m.volume_sobressalente)}</td><td class="num">${fmt.format(m.volume_aberto_ajustado)}</td></tr>`).join('');
+
   barChart($('sobressalenteMes'), month, 'volume_sobressalente', 'red');
-  compareBars($('comparativoPercentual'), month, 'pct_atual', 'pct_ajustado', pct);
-  barChart($('tipoChart'), tipos.map(t=>({name:t.name,total:t.volume_sobressalente})), 'total', 'red');
+
+  $('tabelaResumoPercentual').querySelector('tbody').innerHTML = month.map(m => `<tr><td>${m.name}</td><td class="num">${fmt.format(m.volume_coletado_ok)}</td><td class="num">${pct(m.pct_atual)}</td><td class="num">${pct(m.pct_ajustado)}</td><td class="num">${pp(m.pct_ajustado-m.pct_atual)}</td></tr>`).join('');
+
   $('tabelaCenario').querySelector('tbody').innerHTML = rows.map(r => `<tr><td>${r.tipo_desconexao}</td><td>${r.mes}</td><td class="num">${fmt.format(r.volume_aberto_atual)}</td><td class="num">${fmt.format(r.volume_sobressalente)}</td><td class="num">${fmt.format(r.volume_aberto_ajustado)}</td><td class="num">${fmt.format(r.volume_coletado_ok)}</td><td class="num">${pct(r.pct_coleta_atual)}</td><td class="num">${pct(r.pct_coleta_ajustado)}</td><td class="num">${pp(r.pct_coleta_ajustado-r.pct_coleta_atual)}</td></tr>`).join('');
+
   const topMonth = [...month].sort((a,b)=>b.volume_sobressalente-a.volume_sobressalente)[0];
-  const topTipo = [...tipos].sort((a,b)=>b.volume_sobressalente-a.volume_sobressalente)[0];
-  $('insightList').innerHTML = `<li><span class="badge">Impacto total</span> A retirada de <strong>${fmt.format(sobra)}</strong> equipamentos sobressalentes reduz a base aberta de <strong>${fmt.format(aberto)}</strong> para <strong>${fmt.format(ajustado)}</strong>.</li><li><span class="badge">Indicador</span> O percentual consolidado sobe de <strong>${pct(pctAtual)}</strong> para <strong>${pct(pctAjustado)}</strong>, ganho de <strong>${pp(ganho)}</strong>.</li><li><span class="badge">Mês crítico</span> O maior impacto ocorre em <strong>${topMonth.name}</strong>, com <strong>${fmt.format(topMonth.volume_sobressalente)}</strong> equipamentos sobressalentes.</li><li><span class="badge">Tipo</span> O tipo de desconexão com maior sobressalente é <strong>${topTipo.name}</strong>, com <strong>${fmt.format(topTipo.volume_sobressalente)}</strong> equipamentos.</li>`;
+  $('insightList').innerHTML = `<li><span class="badge">Impacto total</span> A retirada de <strong>${fmt.format(sobra)}</strong> equipamentos sobressalentes reduz a base aberta de <strong>${fmt.format(aberto)}</strong> para <strong>${fmt.format(ajustado)}</strong>.</li><li><span class="badge">Indicador</span> O percentual consolidado sobe de <strong>${pct(pctAtual)}</strong> para <strong>${pct(pctAjustado)}</strong>, ganho de <strong>${pp(ganho)}</strong>.</li><li><span class="badge">Mês crítico</span> O maior impacto ocorre em <strong>${topMonth.name}</strong>, com <strong>${fmt.format(topMonth.volume_sobressalente)}</strong> equipamentos sobressalentes.</li>`;
 }
 $('fTipo').addEventListener('change', render);
 $('resetBtn').addEventListener('click', () => { $('fTipo').value=''; render(); });
