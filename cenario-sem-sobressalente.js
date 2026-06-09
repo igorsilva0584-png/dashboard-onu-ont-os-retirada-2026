@@ -37,6 +37,11 @@ async function loadCSV(){
 function sum(arr){ return arr.reduce((a,b)=>a+b,0); }
 function pct(v){ return `${fmtPct.format(v*100)}%`; }
 function pp(v){ return `${fmtPct.format(v*100)} p.p.`; }
+function calcLinha(r){
+  const pctAtual = r.volume_coletado_ok / r.volume_aberto_atual;
+  const pctAjustado = r.volume_coletado_ok / r.volume_aberto_ajustado;
+  return {...r, pctAtual, pctAjustado, ganho:pctAjustado-pctAtual};
+}
 function groupByMonth(rows){
   const map = new Map();
   rows.forEach(r => {
@@ -64,13 +69,21 @@ function render(){
   $('kpiSobra').textContent = fmt.format(sobra);
   $('headlineTexto').innerHTML = `Sem o volume sobressalente, o indicador consolidado passaria de <strong>${pct(pctAtual)}</strong> para <strong>${pct(pctAjustado)}</strong>, com ganho estimado de <strong>${pp(ganho)}</strong>.`;
   $('tabelaGerencial').querySelector('tbody').innerHTML = month.map(m => `<tr><td>${m.name}</td><td class="num">${pct(m.pctAtual)}</td><td class="num"><strong>${pct(m.pctAjustado)}</strong></td><td class="num gain">${pp(m.ganho)}</td></tr>`).join('');
-  $('tabelaDetalhe').querySelector('tbody').innerHTML = DATA.map(r => {
-    const pctAtualLinha = r.volume_coletado_ok / r.volume_aberto_atual;
-    const pctAjustadoLinha = r.volume_coletado_ok / r.volume_aberto_ajustado;
-    const ganhoLinha = pctAjustadoLinha - pctAtualLinha;
-    return `<tr><td>${r.tipo_desconexao}</td><td>${r.mes}</td><td class="num">${fmt.format(r.volume_aberto_atual)}</td><td class="num">${fmt.format(r.volume_sobressalente)}</td><td class="num">${fmt.format(r.volume_aberto_ajustado)}</td><td class="num">${fmt.format(r.volume_coletado_ok)}</td><td class="num">${pct(pctAtualLinha)}</td><td class="num">${pct(pctAjustadoLinha)}</td><td class="num gain">${pp(ganhoLinha)}</td></tr>`;
+
+  const meses = [...new Set(DATA.map(r => r.mes))].sort((a,b)=>DATA.find(r=>r.mes===a).ordem_mes-DATA.find(r=>r.mes===b).ordem_mes);
+  $('tabelaDesconexao').querySelector('tbody').innerHTML = meses.map(mes => {
+    const vol = calcLinha(DATA.find(r => r.mes === mes && r.tipo_desconexao === 'voluntaria'));
+    const inv = calcLinha(DATA.find(r => r.mes === mes && r.tipo_desconexao === 'involuntaria'));
+    return `<tr><td>${mes}</td><td class="num">${pct(vol.pctAtual)}</td><td class="num"><strong>${pct(vol.pctAjustado)}</strong></td><td class="num gain">${pp(vol.ganho)}</td><td class="num">${pct(inv.pctAtual)}</td><td class="num"><strong>${pct(inv.pctAjustado)}</strong></td><td class="num gain">${pp(inv.ganho)}</td></tr>`;
   }).join('');
+
+  $('tabelaDetalhe').querySelector('tbody').innerHTML = DATA.map(r => {
+    const c = calcLinha(r);
+    return `<tr><td>${c.tipo_desconexao}</td><td>${c.mes}</td><td class="num">${fmt.format(c.volume_aberto_atual)}</td><td class="num">${fmt.format(c.volume_sobressalente)}</td><td class="num">${fmt.format(c.volume_aberto_ajustado)}</td><td class="num">${fmt.format(c.volume_coletado_ok)}</td><td class="num">${pct(c.pctAtual)}</td><td class="num">${pct(c.pctAjustado)}</td><td class="num gain">${pp(c.ganho)}</td></tr>`;
+  }).join('');
+
   const melhorMes = [...month].sort((a,b)=>b.ganho-a.ganho)[0];
-  $('insightList').innerHTML = `<li><span class="badge">Resposta direta</span> O percentual consolidado ficaria em <strong>${pct(pctAjustado)}</strong> sem o sobressalente, contra <strong>${pct(pctAtual)}</strong> no cenário atual.</li><li><span class="badge">Ganho</span> O ganho estimado é de <strong>${pp(ganho)}</strong> no período consolidado.</li><li><span class="badge">Maior impacto</span> O mês com maior ganho é <strong>${melhorMes.name}</strong>, com avanço de <strong>${pp(melhorMes.ganho)}</strong>.</li>`;
+  const maiorGanhoTipo = DATA.map(calcLinha).sort((a,b)=>b.ganho-a.ganho)[0];
+  $('insightList').innerHTML = `<li><span class="badge">Resposta direta</span> O percentual consolidado ficaria em <strong>${pct(pctAjustado)}</strong> sem o sobressalente, contra <strong>${pct(pctAtual)}</strong> no cenário atual.</li><li><span class="badge">Ganho</span> O ganho estimado é de <strong>${pp(ganho)}</strong> no período consolidado.</li><li><span class="badge">Maior impacto mensal</span> O mês com maior ganho consolidado é <strong>${melhorMes.name}</strong>, com avanço de <strong>${pp(melhorMes.ganho)}</strong>.</li><li><span class="badge">Abertura por desconexão</span> Na abertura mensal por tipo, o maior ganho ocorre em <strong>${maiorGanhoTipo.tipo_desconexao} / ${maiorGanhoTipo.mes}</strong>, com <strong>${pp(maiorGanhoTipo.ganho)}</strong>.</li>`;
 }
 loadCSV().then(rows => { DATA = rows; render(); }).catch(err => { console.error(err); $('insightList').innerHTML = `<li><span class="badge">Erro</span> Não foi possível carregar <strong>data/cenario_sem_sobressalente.csv</strong>. ${err.message}</li>`; });
