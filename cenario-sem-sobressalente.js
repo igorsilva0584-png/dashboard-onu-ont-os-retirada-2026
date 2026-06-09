@@ -3,11 +3,9 @@ let DATA = [];
 const $ = (id) => document.getElementById(id);
 const fmt = new Intl.NumberFormat('pt-BR');
 const fmtPct = new Intl.NumberFormat('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
-
 function cacheBuster(url){ return `${url}?v=${Date.now()}`; }
 function clean(v){ return String(v ?? '').replace(/^\uFEFF/, '').trim(); }
 function parseNum(v){
-  if (v === null || v === undefined) return 0;
   let s = clean(v).replace('%','').replace(/\./g,'').replace(',','.');
   let n = Number(s);
   return Number.isFinite(n) ? n : 0;
@@ -33,72 +31,46 @@ async function loadCSV(){
     volume_aberto_atual: parseNum(row.volume_aberto_atual),
     volume_sobressalente: parseNum(row.volume_sobressalente),
     volume_aberto_ajustado: parseNum(row.volume_aberto_ajustado),
-    volume_coletado_ok: parseNum(row.volume_coletado_ok),
-    pct_coleta_atual: parseNum(row.pct_coleta_atual) / 100,
-    pct_coleta_ajustado: parseNum(row.pct_coleta_ajustado) / 100,
-    pct_reducao_base: parseNum(row.pct_reducao_base) / 100
+    volume_coletado_ok: parseNum(row.volume_coletado_ok)
   })).sort((a,b)=>a.ordem_mes-b.ordem_mes || a.tipo_desconexao.localeCompare(b.tipo_desconexao));
 }
-function unique(arr){ return [...new Set(arr)]; }
 function sum(arr){ return arr.reduce((a,b)=>a+b,0); }
-function filtered(){
-  const tipo = $('fTipo').value;
-  return DATA.filter(r => !tipo || r.tipo_desconexao === tipo);
-}
 function pct(v){ return `${fmtPct.format(v*100)}%`; }
 function pp(v){ return `${fmtPct.format(v*100)} p.p.`; }
 function groupByMonth(rows){
   const map = new Map();
   rows.forEach(r => {
-    if(!map.has(r.mes)) map.set(r.mes, {name:r.mes, ordem:r.ordem_mes, volume_aberto_atual:0, volume_sobressalente:0, volume_aberto_ajustado:0, volume_coletado_ok:0});
-    const item = map.get(r.mes);
-    item.volume_aberto_atual += r.volume_aberto_atual;
-    item.volume_sobressalente += r.volume_sobressalente;
-    item.volume_aberto_ajustado += r.volume_aberto_ajustado;
-    item.volume_coletado_ok += r.volume_coletado_ok;
+    if(!map.has(r.mes)) map.set(r.mes, {name:r.mes, ordem:r.ordem_mes, aberto:0, sobra:0, ajustado:0, coletado:0});
+    const i = map.get(r.mes);
+    i.aberto += r.volume_aberto_atual;
+    i.sobra += r.volume_sobressalente;
+    i.ajustado += r.volume_aberto_ajustado;
+    i.coletado += r.volume_coletado_ok;
   });
-  return [...map.values()].map(i => ({...i, pct_atual:i.volume_coletado_ok/i.volume_aberto_atual, pct_ajustado:i.volume_coletado_ok/i.volume_aberto_ajustado})).sort((a,b)=>a.ordem-b.ordem);
-}
-function barChart(el, items, valueKey, cls=''){
-  const max = Math.max(...items.map(i=>i[valueKey]), 1);
-  el.innerHTML = items.map(i => `<div class="bar-row"><div class="bar-label" title="${i.name}">${i.name}</div><div class="bar-track"><div class="bar ${cls}" style="width:${(i[valueKey]/max*100).toFixed(1)}%"></div></div><div class="bar-value">${fmt.format(i[valueKey])}</div></div>`).join('');
-}
-function fillFilters(){
-  const select = $('fTipo');
-  unique(DATA.map(r=>r.tipo_desconexao)).sort().forEach(v => {
-    const o = document.createElement('option'); o.value = v; o.textContent = v; select.appendChild(o);
-  });
+  return [...map.values()].map(i => ({...i, pctAtual:i.coletado/i.aberto, pctAjustado:i.coletado/i.ajustado, ganho:(i.coletado/i.ajustado)-(i.coletado/i.aberto)})).sort((a,b)=>a.ordem-b.ordem);
 }
 function render(){
-  const rows = filtered();
-  const month = groupByMonth(rows);
-  const aberto = sum(rows.map(r=>r.volume_aberto_atual));
-  const sobra = sum(rows.map(r=>r.volume_sobressalente));
-  const ajustado = sum(rows.map(r=>r.volume_aberto_ajustado));
-  const coletado = sum(rows.map(r=>r.volume_coletado_ok));
+  const month = groupByMonth(DATA);
+  const aberto = sum(DATA.map(r=>r.volume_aberto_atual));
+  const sobra = sum(DATA.map(r=>r.volume_sobressalente));
+  const ajustado = sum(DATA.map(r=>r.volume_aberto_ajustado));
+  const coletado = sum(DATA.map(r=>r.volume_coletado_ok));
   const pctAtual = coletado / aberto;
   const pctAjustado = coletado / ajustado;
   const ganho = pctAjustado - pctAtual;
-
-  $('kpiAberto').textContent = fmt.format(aberto);
-  $('kpiSobra').textContent = fmt.format(sobra);
-  $('kpiAjustado').textContent = fmt.format(ajustado);
-  $('kpiColetado').textContent = fmt.format(coletado);
   $('kpiPctAtual').textContent = pct(pctAtual);
   $('kpiPctAjustado').textContent = pct(pctAjustado);
   $('kpiGanho').textContent = pp(ganho);
-
-  $('tabelaResumoVolume').querySelector('tbody').innerHTML = month.map(m => `<tr><td>${m.name}</td><td class="num">${fmt.format(m.volume_aberto_atual)}</td><td class="num">${fmt.format(m.volume_sobressalente)}</td><td class="num">${fmt.format(m.volume_aberto_ajustado)}</td></tr>`).join('');
-
-  barChart($('sobressalenteMes'), month, 'volume_sobressalente', 'red');
-
-  $('tabelaResumoPercentual').querySelector('tbody').innerHTML = month.map(m => `<tr><td>${m.name}</td><td class="num">${fmt.format(m.volume_coletado_ok)}</td><td class="num">${pct(m.pct_atual)}</td><td class="num">${pct(m.pct_ajustado)}</td><td class="num">${pp(m.pct_ajustado-m.pct_atual)}</td></tr>`).join('');
-
-  $('tabelaCenario').querySelector('tbody').innerHTML = rows.map(r => `<tr><td>${r.tipo_desconexao}</td><td>${r.mes}</td><td class="num">${fmt.format(r.volume_aberto_atual)}</td><td class="num">${fmt.format(r.volume_sobressalente)}</td><td class="num">${fmt.format(r.volume_aberto_ajustado)}</td><td class="num">${fmt.format(r.volume_coletado_ok)}</td><td class="num">${pct(r.pct_coleta_atual)}</td><td class="num">${pct(r.pct_coleta_ajustado)}</td><td class="num">${pp(r.pct_coleta_ajustado-r.pct_coleta_atual)}</td></tr>`).join('');
-
-  const topMonth = [...month].sort((a,b)=>b.volume_sobressalente-a.volume_sobressalente)[0];
-  $('insightList').innerHTML = `<li><span class="badge">Impacto total</span> A retirada de <strong>${fmt.format(sobra)}</strong> equipamentos sobressalentes reduz a base aberta de <strong>${fmt.format(aberto)}</strong> para <strong>${fmt.format(ajustado)}</strong>.</li><li><span class="badge">Indicador</span> O percentual consolidado sobe de <strong>${pct(pctAtual)}</strong> para <strong>${pct(pctAjustado)}</strong>, ganho de <strong>${pp(ganho)}</strong>.</li><li><span class="badge">Mês crítico</span> O maior impacto ocorre em <strong>${topMonth.name}</strong>, com <strong>${fmt.format(topMonth.volume_sobressalente)}</strong> equipamentos sobressalentes.</li>`;
+  $('kpiSobra').textContent = fmt.format(sobra);
+  $('headlineTexto').innerHTML = `Sem o volume sobressalente, o indicador consolidado passaria de <strong>${pct(pctAtual)}</strong> para <strong>${pct(pctAjustado)}</strong>, com ganho estimado de <strong>${pp(ganho)}</strong>.`;
+  $('tabelaGerencial').querySelector('tbody').innerHTML = month.map(m => `<tr><td>${m.name}</td><td class="num">${pct(m.pctAtual)}</td><td class="num"><strong>${pct(m.pctAjustado)}</strong></td><td class="num gain">${pp(m.ganho)}</td></tr>`).join('');
+  $('tabelaDetalhe').querySelector('tbody').innerHTML = DATA.map(r => {
+    const pctAtualLinha = r.volume_coletado_ok / r.volume_aberto_atual;
+    const pctAjustadoLinha = r.volume_coletado_ok / r.volume_aberto_ajustado;
+    const ganhoLinha = pctAjustadoLinha - pctAtualLinha;
+    return `<tr><td>${r.tipo_desconexao}</td><td>${r.mes}</td><td class="num">${fmt.format(r.volume_aberto_atual)}</td><td class="num">${fmt.format(r.volume_sobressalente)}</td><td class="num">${fmt.format(r.volume_aberto_ajustado)}</td><td class="num">${fmt.format(r.volume_coletado_ok)}</td><td class="num">${pct(pctAtualLinha)}</td><td class="num">${pct(pctAjustadoLinha)}</td><td class="num gain">${pp(ganhoLinha)}</td></tr>`;
+  }).join('');
+  const melhorMes = [...month].sort((a,b)=>b.ganho-a.ganho)[0];
+  $('insightList').innerHTML = `<li><span class="badge">Resposta direta</span> O percentual consolidado ficaria em <strong>${pct(pctAjustado)}</strong> sem o sobressalente, contra <strong>${pct(pctAtual)}</strong> no cenário atual.</li><li><span class="badge">Ganho</span> O ganho estimado é de <strong>${pp(ganho)}</strong> no período consolidado.</li><li><span class="badge">Maior impacto</span> O mês com maior ganho é <strong>${melhorMes.name}</strong>, com avanço de <strong>${pp(melhorMes.ganho)}</strong>.</li>`;
 }
-$('fTipo').addEventListener('change', render);
-$('resetBtn').addEventListener('click', () => { $('fTipo').value=''; render(); });
-loadCSV().then(rows => { DATA = rows; fillFilters(); render(); }).catch(err => { console.error(err); $('insightList').innerHTML = `<li><span class="badge">Erro</span> Não foi possível carregar <strong>data/cenario_sem_sobressalente.csv</strong>. ${err.message}</li>`; });
+loadCSV().then(rows => { DATA = rows; render(); }).catch(err => { console.error(err); $('insightList').innerHTML = `<li><span class="badge">Erro</span> Não foi possível carregar <strong>data/cenario_sem_sobressalente.csv</strong>. ${err.message}</li>`; });
