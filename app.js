@@ -86,7 +86,6 @@ function obterValorContrato(row) {
 }
 
 function parseCSV(text, delimiter = ';') {
-  // Remove BOM real do início do arquivo. Importante para CSV UTF-8 gerado por ADODB.Stream.
   let cleanText = String(text ?? '');
   if (cleanText.charCodeAt(0) === 0xFEFF) cleanText = cleanText.slice(1);
   cleanText = cleanText.replace(/^\uFEFF/, '').replace(/\r\n/g, '\n').replace(/\r/g, '\n').trim();
@@ -215,16 +214,43 @@ function pieChart(pieElement, legendElement, items, colors = ['var(--red)', 'var
     </div>`).join('');
 }
 
+function labelMesTabela(month) {
+  const nomeMes = typeof month === 'string' ? month : month.name;
+  return String(nomeMes || '').split('/')[0];
+}
+
+function renderTopTableHeader() {
+  const table = $('topTable');
+  if (!table) return;
+
+  const thead = table.querySelector('thead');
+  if (!thead) return;
+
+  thead.innerHTML = `
+    <tr>
+      <th>#</th>
+      <th>Tipo desconexão</th>
+      <th>UF</th>
+      <th>Carteira</th>
+      ${MONTHS.map(month => `<th class="num">${labelMesTabela(month)}</th>`).join('')}
+      <th class="num">Total</th>
+      <th class="num">%</th>
+    </tr>
+  `;
+}
+
 function render() {
   const rows = filtered();
   const total = sum(rows.map(row => row.total));
   const byUF = groupBy(rows, row => row.estado);
   const byCarteira = groupBy(rows, row => row.descricao);
   const byTipo = groupBy(rows, row => row.tipo_desconexao);
- const byMonth = MONTHS.map(month => ({
-  name: month.name,
-  total: sum(rows.map(row => row.monthValues?.[month.name] || 0))
-}));
+
+  const byMonth = MONTHS.map(month => ({
+    name: month.name,
+    total: sum(rows.map(row => row.monthValues?.[month.name] || 0))
+  }));
+
   const spAzza = sum(rows.filter(row => row.estado === 'SP' && row.descricao === 'AZZA').map(row => row.total));
 
   $('kpiTotal').textContent = fmt.format(total);
@@ -245,14 +271,17 @@ function render() {
   barChart($('ufChart'), byUF.slice(0, 10));
   barChart($('carteiraChart'), byCarteira.slice(0, 10));
 
+  renderTopTableHeader();
+
   const ranked = [...rows].sort((a, b) => b.total - a.total).slice(0, 12);
+
   $('topTable').querySelector('tbody').innerHTML = ranked.map((row, index) => `
     <tr>
       <td>${index + 1}</td>
       <td>${row.tipo_desconexao}</td>
       <td>${row.estado}</td>
       <td><strong>${row.descricao}</strong></td>
-      ${MONTHS.map(month => `<td class="num">${fmt.format(row.monthValues[month.name] || 0)}</td>`).join('')}
+      ${MONTHS.map(month => `<td class="num">${fmt.format(row.monthValues?.[month.name] || 0)}</td>`).join('')}
       <td class="num"><strong>${fmt.format(row.total)}</strong></td>
       <td class="num">${pct(row.total, total)}</td>
     </tr>`).join('');
